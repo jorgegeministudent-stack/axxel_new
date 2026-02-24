@@ -193,7 +193,7 @@
         <div class="preloader-bar-container">
             <div class="preloader-bar" id="load-bar"></div>
         </div>
-        <div class="preloader-status" id="load-status">Iniciando Protocolos...</div>
+        <div class="preloader-status" id="load-status">Sincronizando Sistemas...</div>
     </div>
 
     <div id="cursor"></div>
@@ -284,20 +284,20 @@
     <script>
         lucide.createIcons();
 
-        // --- GESTIÓN DE VÍDEO INTELIGENTE ---
+        // --- SISTEMA DE REPRODUCCIÓN AGRESIVO ---
         const vids = document.querySelectorAll('video');
         
         // Función para "despertar" los vídeos del cuerpo
         const wakeUpVideos = () => {
-            console.log("DIAGNÓSTICO: Despertando vídeos del cuerpo...");
+            console.log("DIAGNÓSTICO: Despertando todos los flujos de vídeo...");
             vids.forEach((v, i) => {
-                if (i > 0) { // Omitimos el preloader
-                    v.play().then(() => {
-                        console.log(`DIAGNÓSTICO: Video ${i} reproduciendo.`);
-                    }).catch(err => {
-                        console.warn(`DIAGNÓSTICO: Reintento Video ${i}...`);
-                    });
-                }
+                v.play().then(() => {
+                    console.log(`DIAGNÓSTICO: Video ${i} reproduciendo exitosamente.`);
+                }).catch(err => {
+                    console.warn(`DIAGNÓSTICO: Video ${i} requiere interacción o carga pendiente...`);
+                    // Forzamos carga de bytes
+                    v.load();
+                });
             });
         };
 
@@ -306,17 +306,17 @@
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
         
-        const statuses = ["Cargando Núcleo...", "Sincronizando Bía...", "Cargando Visuales...", "Validando Enlace...", "Sistemas Listos."];
+        const statuses = ["Conectando al Núcleo...", "Sincronizando Bía...", "Cargando Visuales...", "Sistemas Operativos."];
 
         let progress = 0;
         let statusIdx = 0;
 
         const interval = setInterval(() => {
-            progress += Math.random() * 10;
+            progress += Math.random() * 8;
             if (progress > 100) progress = 100;
             loadBar.style.width = `${progress}%`;
             
-            if (progress > (statusIdx + 1) * 20 && statusIdx < statuses.length - 1) {
+            if (progress > (statusIdx + 1) * 25 && statusIdx < statuses.length - 1) {
                 statusIdx++;
                 loadStatus.innerText = statuses[statusIdx];
             }
@@ -325,17 +325,23 @@
                 clearInterval(interval);
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
-                    wakeUpVideos(); // Ejecutar al terminar el preloader
+                    wakeUpVideos(); // Ejecutamos la reproducción masiva al terminar la carga
                 }, 1000);
             }
         }, 300);
 
-        // Re-intento de reproducción periódica si falló el inicio
-        const playMaster = setInterval(() => {
+        // Ciclo de seguridad por si el CDN tarda en responder
+        const securityLoop = setInterval(() => {
             if (preloader.classList.contains('loaded')) {
-                vids.forEach(v => { if (v.paused) v.play().catch(() => {}); });
+                let allPlaying = true;
+                vids.forEach(v => { if (v.paused) allPlaying = false; });
+                if (allPlaying) {
+                    clearInterval(securityLoop);
+                } else {
+                    vids.forEach(v => v.play().catch(()=>{}));
+                }
             }
-        }, 2000);
+        }, 3000);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
