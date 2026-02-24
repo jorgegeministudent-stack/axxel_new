@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Axxel Solutions | Digital Performance Engineering</title>
+    
+    <!-- PRECARGA CRÍTICA PARA VERCEL -->
+    <link rel="preload" href="assets/video/preloader-bg.mp4" as="video" type="video/mp4">
+    <link rel="preload" href="assets/video/code.mp4" as="video" type="video/mp4">
+    <link rel="preload" href="assets/video/dashboard.mp4" as="video" type="video/mp4">
+    <link rel="preload" href="assets/video/bia-hologram.mp4" as="video" type="video/mp4">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700&family=Space+Mono&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -116,21 +123,22 @@
             background: var(--black);
         }
 
-        /* --- VIDEO BACKGROUNDS (BULL-PROOF) --- */
+        /* --- VIDEO BACKGROUNDS --- */
         .video-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            filter: brightness(0.7) grayscale(0.1);
-            opacity: 1; /* Forzamos visibilidad total */
+            filter: brightness(0.65) grayscale(0.1);
+            opacity: 1; 
             display: block;
+            background: var(--black); /* Fondo negro mientras carga */
         }
 
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -191,14 +199,14 @@
         <div class="preloader-bar-container">
             <div class="preloader-bar" id="load-bar"></div>
         </div>
-        <div class="preloader-status" id="load-status">Estableciendo Enlace...</div>
+        <div class="preloader-status" id="load-status">Iniciando Protocolos...</div>
     </div>
 
     <div id="cursor"></div>
     <div id="cursor-follower"></div>
 
     <nav>
-        <div class="nav-left"><span>Protocolo: Bía Engine Alpha</span></div>
+        <div class="nav-left"><span>Status: Online</span></div>
         <div class="nav-center">
             <div class="logo-box">
                 <img src="assets/img/symbol.png" alt="Axxel">
@@ -282,37 +290,42 @@
     <script>
         lucide.createIcons();
 
-        // --- GESTIÓN DE VÍDEO AGRESIVA ---
-        const allVideos = document.querySelectorAll('video');
-        
-        // Forzamos carga inmediata de todos los vídeos sin importar el viewport
-        allVideos.forEach((v, i) => {
-            v.load(); // Fuerza el inicio del streaming
+        // --- SISTEMA DE CARGA FORZADA ---
+        const vids = document.querySelectorAll('video');
+        console.log(`DIAGNÓSTICO: Iniciando carga de ${vids.length} vídeos.`);
+
+        vids.forEach((v, i) => {
+            // Forzamos el inicio de la descarga
+            v.load();
             
-            // Log de diagnóstico
-            v.addEventListener('playing', () => console.log(`Video ${i} reproduciendo exitosamente.`));
-            v.addEventListener('error', (e) => console.error(`Error en Video ${i}:`, v.error));
+            v.onplaying = () => console.log(`DIAGNÓSTICO: Video ${i} [${v.querySelector('source').getAttribute('src')}] OK.`);
+            v.onerror = () => console.error(`DIAGNÓSTICO: Error en Video ${i}.`, v.error);
         });
 
-        // Intentar reproducir periódicamente hasta que el navegador lo permita
-        const forcePlayInterval = setInterval(() => {
-            allVideos.forEach(v => {
-                if (v.paused) v.play().catch(() => {});
+        // Re-intento de reproducción periódica (algunos navegadores bloquean el primer intento)
+        const playMaster = setInterval(() => {
+            let allPlaying = true;
+            vids.forEach(v => {
+                if (v.paused) {
+                    v.play().catch(() => {});
+                    allPlaying = false;
+                }
             });
-        }, 1000);
+            if (allPlaying) clearInterval(playMaster);
+        }, 1500);
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
         
-        const statuses = ["Estableciendo Enlace Neural...", "Sincronizando Bía Alpha-1...", "Cargando Módulos...", "Validando Protocolos...", "Sistemas Operativos."];
+        const statuses = ["Iniciando Protocolos...", "Sincronizando Bía Engine...", "Cargando Visuales...", "Validando Enlace...", "Sistemas Listos."];
 
         let progress = 0;
         let statusIdx = 0;
 
         const interval = setInterval(() => {
-            progress += Math.random() * 12;
+            progress += Math.random() * 15;
             if (progress > 100) progress = 100;
             loadBar.style.width = `${progress}%`;
             
@@ -323,14 +336,11 @@
 
             if (progress === 100) {
                 clearInterval(interval);
-                clearInterval(forcePlayInterval); // Paramos el intervalo de play forzado al entrar
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
-                    // Una vez cargado, intentamos un último play masivo
-                    allVideos.forEach(v => v.play().catch(() => {}));
-                }, 1000);
+                }, 1200);
             }
-        }, 300);
+        }, 400);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
@@ -350,7 +360,7 @@
         }
         animateCursor();
 
-        // --- REVEAL ON SCROLL ---
+        // --- REVEAL ---
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
