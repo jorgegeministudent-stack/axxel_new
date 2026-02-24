@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axxel Solutions | Digital Performance Engineering</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700&family=Space+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --axxel-cyan: #33D1C1; 
+            --grey: #444444;
+            --border: rgba(255, 255, 255, 0.08);
+            --font-main: 'Inter', sans-serif;
+            --font-mono: 'Space Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+        body {
+            background-color: var(--black);
+            color: var(--white);
+            font-family: var(--font-main);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- PRELOADER / SPLASH --- */
+        #preloader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--black);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.5s cubic-bezier(0.19, 1, 0.22, 1), visibility 1.5s;
+        }
+
+        .preloader-video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0.4;
+            filter: grayscale(1) blur(5px);
+            z-index: -1;
+        }
+
+        .preloader-logo {
+            width: 80px;
+            margin-bottom: 40px;
+            filter: drop-shadow(0 0 10px rgba(51, 209, 193, 0.3));
+            animation: pulseLogo 3s infinite ease-in-out;
+            z-index: 2;
+        }
+
+        .preloader-bar-container {
+            width: 200px;
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            position: relative;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .preloader-bar {
+            position: absolute;
+            top: 0; left: 0; height: 100%;
+            width: 0%;
+            background: var(--axxel-cyan);
+            box-shadow: 0 0 15px var(--axxel-cyan);
+            transition: width 0.5s ease;
+        }
+
+        .preloader-status {
+            font-family: var(--font-mono);
+            font-size: 0.5rem;
+            color: var(--grey);
+            letter-spacing: 4px;
+            margin-top: 20px;
+            text-transform: uppercase;
+            z-index: 2;
+        }
+
+        @keyframes pulseLogo {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        #preloader.loaded {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        /* --- CURSOR --- */
+        #cursor { position: fixed; width: 8px; height: 8px; background: var(--axxel-cyan); border-radius: 50%; pointer-events: none; z-index: 10000; }
+        #cursor-follower { position: fixed; width: 40px; height: 40px; border: 1px solid var(--axxel-cyan); border-radius: 50%; pointer-events: none; z-index: 9999; transition: transform 0.15s ease-out; opacity: 0.3; }
+
+        /* --- SNAP SCROLL --- */
+        .main-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        section, footer { scroll-snap-align: start; scroll-snap-stop: always; }
+
+        section {
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            background: var(--black);
+        }
+
+        /* --- VIDEO & OVERLAY --- */
+        .video-bg {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            filter: brightness(0.35) grayscale(0.2);
+            opacity: 0;
+            transition: opacity 2s ease;
+        }
+        .video-bg.loaded { opacity: 1; }
+
+        .video-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%);
+            z-index: 1;
+        }
+
+        /* --- NAVIGATION --- */
+        nav {
+            position: fixed;
+            top: 0; width: 100%; padding: 40px 60px;
+            display: grid; grid-template-columns: 1fr auto 1fr;
+            align-items: center; z-index: 1000;
+        }
+        .logo-box { display: flex; align-items: center; gap: 15px; }
+        .logo-box img { height: 35px; width: auto; }
+        .logo-box span { font-weight: 700; letter-spacing: 0.8rem; font-size: 1.2rem; text-transform: uppercase; }
+        .nav-left, .nav-right { font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; color: #888; }
+        .nav-right { display: flex; justify-content: flex-end; gap: 40px; }
+
+        /* --- CONTENT --- */
+        .content-box { padding-left: 10%; z-index: 2; position: relative; }
+        .label { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 6px; color: var(--axxel-cyan); margin-bottom: 25px; display: block; text-transform: uppercase; }
+        .title { font-size: clamp(2.5rem, 8vw, 5.5rem); font-weight: 100; letter-spacing: 1.5rem; line-height: 1; margin-bottom: 30px; text-transform: uppercase; }
+        .description { font-size: 1rem; font-weight: 300; letter-spacing: 1px; color: var(--white); max-width: 550px; line-height: 1.8; opacity: 0.7; }
+        
+        .btn-axxel {
+            margin-top: 45px;
+            padding: 18px 45px; border: 1px solid var(--white); color: var(--white);
+            text-decoration: none; font-size: 0.7rem; letter-spacing: 4px; text-transform: uppercase;
+            transition: 0.5s; display: inline-block;
+        }
+        .btn-axxel:hover { background: var(--white); color: var(--black); }
+
+        /* --- SPECS --- */
+        .specs-grid { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--border); background: var(--black); }
+        .spec-item { padding: 100px 80px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .spec-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--grey); letter-spacing: 4px; margin-bottom: 20px; text-transform: uppercase; }
+        .spec-value { font-size: 2.2rem; font-weight: 200; letter-spacing: 4px; margin-bottom: 20px; text-transform: uppercase; }
+
+        /* --- FOOTER --- */
+        .footer { padding: 120px 10% 60px; border-top: 1px solid var(--border); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+        .footer-logo { font-size: 2rem; letter-spacing: 1.2rem; font-weight: 700; margin-bottom: 40px; }
+        .footer-bottom { border-top: 1px solid var(--border); padding-top: 40px; display: flex; justify-content: space-between; font-size: 0.6rem; letter-spacing: 3px; color: #333; text-transform: uppercase; }
+
+        /* --- REVEAL --- */
+        .reveal { opacity: 0; transform: translateY(40px); transition: 1.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        .scroll-indicator { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); z-index: 10; opacity: 0.3; }
+    </style>
+</head>
+<body>
+
+    <!-- PRELOADER CON VÍDEO -->
+    <div id="preloader">
+        <video class="preloader-video" autoplay muted loop playsinline>
+            <source src="assets/video/preloader-bg.mp4" type="video/mp4">
+        </video>
+        <img src="assets/img/symbol.png" alt="Axxel" class="preloader-logo">
+        <div class="preloader-bar-container">
+            <div class="preloader-bar" id="load-bar"></div>
+        </div>
+        <div class="preloader-status" id="load-status">Iniciando Sistemas...</div>
+    </div>
+
+    <div id="cursor"></div>
+    <div id="cursor-follower"></div>
+
+    <nav>
+        <div class="nav-left"><span>Protocolo: Bía Alpha-1</span></div>
+        <div class="nav-center">
+            <div class="logo-box">
+                <img src="assets/img/symbol.png" alt="Axxel">
+                <span>AXXEL</span>
+            </div>
+        </div>
+        <div class="nav-right">
+            <span>Servicios</span>
+            <span>Casos</span>
+            <span>Contacto</span>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <!-- 1. INFRAESTRUCTURA -->
+        <section>
+            <video class="video-bg" autoplay muted loop playsinline oncanplay="this.classList.add('loaded')">
+                <source src="assets/video/code.mp4" type="video/mp4">
+            </video>
+            <div class="video-overlay"></div>
+            <div class="content-box">
+                <span class="label reveal">Digital Infrastructure</span>
+                <h1 class="title reveal">INGENIERÍA DE<br>ALTO IMPACTO</h1>
+                <p class="description reveal">Arquitecturas de software desarrolladas con precisión milimétrica. Rendimiento extremo para empresas visionarias.</p>
+                <a href="#" class="btn-axxel reveal">Ver Arquitectura</a>
+            </div>
+            <div class="scroll-indicator"><i data-lucide="mouse" style="color:white; width: 20px;"></i></div>
+        </section>
+
+        <!-- 2. DASHBOARD -->
+        <section>
+            <video class="video-bg" autoplay muted loop playsinline oncanplay="this.classList.add('loaded')">
+                <source src="assets/video/dashboard.mp4" type="video/mp4">
+            </video>
+            <div class="video-overlay"></div>
+            <div class="content-box">
+                <span class="label reveal">Real-Time Data</span>
+                <h1 class="title reveal">CONTROL TOTAL<br>EN TIEMPO REAL</h1>
+                <p class="description reveal">Dashboards inteligentes que transforman datos masivos en decisiones estratégicas instantáneas.</p>
+                <a href="#" class="btn-axxel reveal">Explorar Panel</a>
+            </div>
+        </section>
+
+        <!-- 3. BÍA HOLOGRAMA -->
+        <section>
+            <video class="video-bg" autoplay muted loop playsinline oncanplay="this.classList.add('loaded')">
+                <source src="assets/video/bia-hologram.mp4" type="video/mp4">
+            </video>
+            <div class="video-overlay"></div>
+            <div class="content-box">
+                <span class="label reveal">Conversational Agent</span>
+                <h1 class="title reveal">BÍA: TU AGENTE<br>DE IA AVANZADO</h1>
+                <p class="description reveal">Nuestra asistente virtual autónoma no solo responde, comprende el contexto y optimiza cada interacción con tus clientes.</p>
+                <a href="#" class="btn-axxel reveal">Hablar con Bía</a>
+            </div>
+        </section>
+
+        <!-- 4. SPECS -->
+        <section class="specs-grid">
+            <div class="spec-item reveal">
+                <span class="spec-label">Engine</span>
+                <h3 class="spec-value">Axxel Core</h3>
+                <p style="color: #666; font-size: 0.85rem;">Infraestructura de ultra-baja latencia.</p>
+            </div>
+            <div class="spec-item reveal">
+                <span class="spec-label">Automation</span>
+                <h3 class="spec-value">99.9% Uptime</h3>
+                <p style="color: #666; font-size: 0.85rem;">Sistemas con auto-curación escalable.</p>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <div class="footer-logo">AXXEL</div>
+            <div class="footer-bottom">
+                <p>© 2026 AXXEL SOLUTIONS. DEFINING THE NEW STANDARD.</p>
+                <p>ES / EN / RU</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- PRELOADER LOGIC ---
+        const preloader = document.getElementById('preloader');
+        const loadBar = document.getElementById('load-bar');
+        const loadStatus = document.getElementById('load-status');
+        
+        const statuses = [
+            "Estableciendo Conexión Neural...",
+            "Sincronizando Bía Alpha-1...",
+            "Cargando Módulos de IA...",
+            "Validando Protocolos de Seguridad...",
+            "Sistemas Operativos."
+        ];
+
+        let progress = 0;
+        let statusIdx = 0;
+
+        const interval = setInterval(() => {
+            progress += Math.random() * 12;
+            if (progress > 100) progress = 100;
+            
+            loadBar.style.width = `${progress}%`;
+            
+            if (progress > (statusIdx + 1) * 20 && statusIdx < statuses.length - 1) {
+                statusIdx++;
+                loadStatus.innerText = statuses[statusIdx];
+            }
+
+            if (progress === 100) {
+                clearInterval(interval);
+                setTimeout(() => {
+                    preloader.classList.add('loaded');
+                }, 1000);
+            }
+        }, 400);
+
+        // --- CURSOR ---
+        const cursor = document.getElementById('cursor');
+        const follower = document.getElementById('cursor-follower');
+        let mx = 0, my = 0, fx = 0, fy = 0;
+
+        document.addEventListener('mousemove', e => {
+            mx = e.clientX; my = e.clientY;
+            cursor.style.transform = `translate3d(${mx}px, ${my}px, 0)`;
+        });
+
+        function animateCursor() {
+            fx += (mx - fx - 20) * 0.15;
+            fy += (my - fy - 20) * 0.15;
+            follower.style.transform = `translate3d(${fx}px, ${fy}px, 0)`;
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+
+        // --- REVEAL ---
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if(entry.isIntersecting) {
+                    entry.target.querySelectorAll('.reveal').forEach((el, i) => {
+                        setTimeout(() => el.classList.add('visible'), i * 150);
+                    });
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('section, footer').forEach(s => observer.observe(s));
+    </script>
+</body>
+</html>
