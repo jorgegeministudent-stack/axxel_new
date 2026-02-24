@@ -5,12 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Axxel Solutions | Digital Performance Engineering</title>
     
-    <!-- PRECARGA CRÍTICA PARA VERCEL -->
-    <link rel="preload" href="assets/video/preloader-bg.mp4" as="video" type="video/mp4">
-    <link rel="preload" href="assets/video/code.mp4" as="video" type="video/mp4">
-    <link rel="preload" href="assets/video/dashboard.mp4" as="video" type="video/mp4">
-    <link rel="preload" href="assets/video/bia-hologram.mp4" as="video" type="video/mp4">
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;300;400;700&family=Space+Mono&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -129,16 +123,16 @@
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            filter: brightness(0.65) grayscale(0.1);
+            filter: brightness(0.6) grayscale(0.1);
             opacity: 1; 
             display: block;
-            background: var(--black); /* Fondo negro mientras carga */
+            background: var(--black);
         }
 
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.9) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -223,7 +217,7 @@
     <div class="main-container">
         <!-- 1. CÓDIGO -->
         <section id="sec-1">
-            <video class="video-bg" autoplay muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto">
                 <source src="assets/video/code.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -238,7 +232,7 @@
 
         <!-- 2. DASHBOARD -->
         <section id="sec-2">
-            <video class="video-bg" autoplay muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto">
                 <source src="assets/video/dashboard.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -252,7 +246,7 @@
 
         <!-- 3. BÍA AI -->
         <section id="sec-3">
-            <video class="video-bg" autoplay muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto">
                 <source src="assets/video/bia-hologram.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -290,42 +284,35 @@
     <script>
         lucide.createIcons();
 
-        // --- SISTEMA DE CARGA FORZADA ---
+        // --- GESTIÓN DE VÍDEO INTELIGENTE ---
         const vids = document.querySelectorAll('video');
-        console.log(`DIAGNÓSTICO: Iniciando carga de ${vids.length} vídeos.`);
-
-        vids.forEach((v, i) => {
-            // Forzamos el inicio de la descarga
-            v.load();
-            
-            v.onplaying = () => console.log(`DIAGNÓSTICO: Video ${i} [${v.querySelector('source').getAttribute('src')}] OK.`);
-            v.onerror = () => console.error(`DIAGNÓSTICO: Error en Video ${i}.`, v.error);
-        });
-
-        // Re-intento de reproducción periódica (algunos navegadores bloquean el primer intento)
-        const playMaster = setInterval(() => {
-            let allPlaying = true;
-            vids.forEach(v => {
-                if (v.paused) {
-                    v.play().catch(() => {});
-                    allPlaying = false;
+        
+        // Función para "despertar" los vídeos del cuerpo
+        const wakeUpVideos = () => {
+            console.log("DIAGNÓSTICO: Despertando vídeos del cuerpo...");
+            vids.forEach((v, i) => {
+                if (i > 0) { // Omitimos el preloader
+                    v.play().then(() => {
+                        console.log(`DIAGNÓSTICO: Video ${i} reproduciendo.`);
+                    }).catch(err => {
+                        console.warn(`DIAGNÓSTICO: Reintento Video ${i}...`);
+                    });
                 }
             });
-            if (allPlaying) clearInterval(playMaster);
-        }, 1500);
+        };
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
         
-        const statuses = ["Iniciando Protocolos...", "Sincronizando Bía Engine...", "Cargando Visuales...", "Validando Enlace...", "Sistemas Listos."];
+        const statuses = ["Cargando Núcleo...", "Sincronizando Bía...", "Cargando Visuales...", "Validando Enlace...", "Sistemas Listos."];
 
         let progress = 0;
         let statusIdx = 0;
 
         const interval = setInterval(() => {
-            progress += Math.random() * 15;
+            progress += Math.random() * 10;
             if (progress > 100) progress = 100;
             loadBar.style.width = `${progress}%`;
             
@@ -338,9 +325,17 @@
                 clearInterval(interval);
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
-                }, 1200);
+                    wakeUpVideos(); // Ejecutar al terminar el preloader
+                }, 1000);
             }
-        }, 400);
+        }, 300);
+
+        // Re-intento de reproducción periódica si falló el inicio
+        const playMaster = setInterval(() => {
+            if (preloader.classList.contains('loaded')) {
+                vids.forEach(v => { if (v.paused) v.play().catch(() => {}); });
+            }
+        }, 2000);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
@@ -360,7 +355,7 @@
         }
         animateCursor();
 
-        // --- REVEAL ---
+        // --- REVEAL ON SCROLL ---
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
