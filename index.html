@@ -122,8 +122,14 @@
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            filter: brightness(0.7) grayscale(0.1); /* Brillo aumentado para mejor visibilidad */
-            display: block;
+            filter: brightness(0.7) grayscale(0.1);
+            opacity: 0; /* Empiezan invisibles */
+            transition: opacity 2.5s ease;
+        }
+        
+        /* CORRECCIÓN: La clase que usa el JS ahora existe en el CSS */
+        .video-bg.v-visible { 
+            opacity: 1 !important; 
         }
 
         .video-overlay {
@@ -287,25 +293,28 @@
         allVideos.forEach((v, i) => {
             const source = v.querySelector('source').getAttribute('src');
             
-            // Forzar carga
+            // Forzar carga inicial
             v.load();
 
             v.addEventListener('playing', () => {
                 console.log("DEBUG: Video " + i + " (" + source + ") está REPRODUCIENDO.");
+                v.classList.add('v-visible'); // Aseguramos que se vea al reproducir
             });
 
             v.addEventListener('error', (e) => {
                 console.error("DEBUG ERROR: Video " + i + " (" + source + ") falló.", v.error);
             });
 
-            // Intento de reproducción forzada por interacción o ciclo
-            const playAttempt = setInterval(() => {
-                v.play().then(() => {
-                    clearInterval(playAttempt);
-                }).catch(() => {
-                    // Fallo silencioso hasta que haya interacción
-                });
-            }, 1000);
+            // Fallback agresivo: si a los 5 segundos no ha disparado 'playing', forzamos opacidad
+            // Esto es útil si el video ya está cargado pero el navegador lo tiene pausado
+            setTimeout(() => {
+                if (v.paused) {
+                    v.play().catch(() => {
+                        console.warn("DEBUG: Auto-play bloqueado para Video " + i + ". Esperando interacción.");
+                    });
+                }
+                v.classList.add('v-visible');
+            }, 5000);
         });
 
         // --- PRELOADER ---
@@ -330,7 +339,9 @@
 
             if (progress === 100) {
                 clearInterval(interval);
-                setTimeout(() => { preloader.classList.add('loaded'); }, 1000);
+                setTimeout(() => { 
+                    preloader.classList.add('loaded'); 
+                }, 1000);
             }
         }, 350);
 
