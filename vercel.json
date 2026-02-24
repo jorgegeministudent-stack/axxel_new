@@ -9,12 +9,12 @@
           "value": "public, max-age=0, must-revalidate"
         },
         {
-          "key": "Content-Type",
-          "value": "video/mp4"
-        },
-        {
           "key": "Accept-Ranges",
           "value": "bytes"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         }
       ]
     }
