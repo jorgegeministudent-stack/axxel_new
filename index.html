@@ -39,7 +39,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 1s cubic-bezier(0.19, 1, 0.22, 1), visibility 1s;
+            transition: opacity 1s ease-in-out, visibility 1s;
         }
 
         .preloader-video {
@@ -117,22 +117,22 @@
             background: var(--black);
         }
 
-        /* --- VIDEO BACKGROUNDS --- */
+        /* --- VIDEO BACKGROUNDS (FORCED VISIBILITY) --- */
         .video-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
             filter: brightness(0.65) grayscale(0.1);
-            opacity: 1; 
-            display: block;
+            opacity: 1 !important; 
+            display: block !important;
             background: var(--black);
         }
 
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -187,13 +187,13 @@
     <!-- PRELOADER -->
     <div id="preloader">
         <video class="preloader-video" autoplay muted loop playsinline preload="auto">
-            <source src="assets/video/preloader-bg.mp4" type="video/mp4">
+            <source src="assets/video/preloader-bg.mp4?v=2" type="video/mp4">
         </video>
         <img src="assets/img/symbol.png" alt="Axxel" class="preloader-logo">
         <div class="preloader-bar-container">
             <div class="preloader-bar" id="load-bar"></div>
         </div>
-        <div class="preloader-status" id="load-status">Sincronizando Sistemas...</div>
+        <div class="preloader-status" id="load-status">Sincronizando Núcleo...</div>
     </div>
 
     <div id="cursor"></div>
@@ -218,7 +218,7 @@
         <!-- 1. CÓDIGO -->
         <section id="sec-1">
             <video class="video-bg" muted loop playsinline preload="auto" autoplay>
-                <source src="assets/video/code.mp4" type="video/mp4">
+                <source src="assets/video/code.mp4?v=2" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
             <div class="content-box">
@@ -233,7 +233,7 @@
         <!-- 2. DASHBOARD -->
         <section id="sec-2">
             <video class="video-bg" muted loop playsinline preload="auto" autoplay>
-                <source src="assets/video/dashboard.mp4" type="video/mp4">
+                <source src="assets/video/dashboard.mp4?v=2" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
             <div class="content-box">
@@ -247,7 +247,7 @@
         <!-- 3. BÍA AI -->
         <section id="sec-3">
             <video class="video-bg" muted loop playsinline preload="auto" autoplay>
-                <source src="assets/video/bia-hologram.mp4" type="video/mp4">
+                <source src="assets/video/bia-hologram.mp4?v=2" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
             <div class="content-box">
@@ -284,49 +284,47 @@
     <script>
         lucide.createIcons();
 
-        // --- SISTEMA DE REPRODUCCIÓN AGRESIVO Y DESBLOQUEO ---
+        // --- SISTEMA DE DIAGNÓSTICO PROFUNDO ---
         const vids = document.querySelectorAll('video');
         
-        const tryPlayAll = () => {
-            console.log("DIAGNÓSTICO: Intento de reproducción masiva...");
+        const monitorVideos = () => {
             vids.forEach((v, i) => {
-                const playPromise = v.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        console.log(`DIAGNÓSTICO: Video ${i} OK.`);
-                    }).catch(error => {
-                        console.warn(`DIAGNÓSTICO: Video ${i} bloqueado. Esperando interacción.`);
-                        // Intentamos cargar los metadatos de nuevo si falla
-                        v.load();
+                const src = v.querySelector('source').src;
+                // readyState 4 significa que tiene datos suficientes para reproducir
+                console.log(`DIAGNÓSTICO Video ${i} [${src.split('/').pop()}]: State=${v.readyState}, Paused=${v.paused}`);
+                
+                // Intento forzado de arranque
+                if (v.paused) {
+                    v.play().catch(() => {
+                        // El navegador bloquea hasta interacción
                     });
                 }
             });
         };
 
-        // Escuchamos la primera interacción para desbloquear el contexto de video/audio
-        const unlockContext = () => {
-            tryPlayAll();
-            window.removeEventListener('click', unlockContext);
-            window.removeEventListener('scroll', unlockContext);
-            window.removeEventListener('touchstart', unlockContext);
+        // Escuchar interacción para desbloquear el audio/video del navegador
+        const unlock = () => {
+            monitorVideos();
+            window.removeEventListener('mousedown', unlock);
+            window.removeEventListener('touchstart', unlock);
+            window.removeEventListener('wheel', unlock);
         };
-
-        window.addEventListener('click', unlockContext);
-        window.addEventListener('scroll', unlockContext, { passive: true });
-        window.addEventListener('touchstart', unlockContext);
+        window.addEventListener('mousedown', unlock);
+        window.addEventListener('touchstart', unlock);
+        window.addEventListener('wheel', unlock);
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
         
-        const statuses = ["Conectando al Núcleo...", "Sincronizando Bía...", "Cargando Visuales...", "Sistemas Operativos."];
+        const statuses = ["Cargando Núcleo...", "Sincronizando Bía...", "Cargando Visuales...", "Sistemas Listos."];
 
         let progress = 0;
         let statusIdx = 0;
 
         const interval = setInterval(() => {
-            progress += Math.random() * 8;
+            progress += Math.random() * 12;
             if (progress > 100) progress = 100;
             loadBar.style.width = `${progress}%`;
             
@@ -339,8 +337,8 @@
                 clearInterval(interval);
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
-                    tryPlayAll(); // Intentamos play al terminar carga
-                }, 1000);
+                    monitorVideos(); // Intentar play masivo al terminar carga
+                }, 800);
             }
         }, 300);
 
