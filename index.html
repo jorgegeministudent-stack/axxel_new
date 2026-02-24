@@ -122,16 +122,16 @@
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            filter: brightness(0.3) grayscale(0.1);
-            opacity: 0; 
-            transition: opacity 2s ease;
+            filter: brightness(0.6) grayscale(0.1); /* Brillo aumentado para Vercel */
+            opacity: 1; /* Visible por defecto para evitar problemas de carga */
+            transition: opacity 1s ease;
         }
-        .video-bg.v-visible { opacity: 1; }
 
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.95) 100%);
+            /* Degradado suavizado para no oscurecer tanto el video */
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%);
             z-index: 1;
         }
 
@@ -154,7 +154,7 @@
         .content-box { padding-left: 10%; z-index: 2; position: relative; }
         .label { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 7px; color: var(--axxel-cyan); margin-bottom: 30px; display: block; text-transform: uppercase; }
         .title { font-size: clamp(2.5rem, 8vw, 5.5rem); font-weight: 100; letter-spacing: 1.5rem; line-height: 0.95; margin-bottom: 35px; text-transform: uppercase; }
-        .description { font-size: 1.05rem; font-weight: 300; letter-spacing: 1.5px; color: var(--white); max-width: 550px; line-height: 1.9; opacity: 0.75; }
+        .description { font-size: 1.05rem; font-weight: 300; letter-spacing: 1.5px; color: var(--white); max-width: 550px; line-height: 1.9; opacity: 0.85; }
         
         .btn-axxel {
             margin-top: 50px;
@@ -181,6 +181,7 @@
 </head>
 <body>
 
+    <!-- PRELOADER -->
     <div id="preloader">
         <video class="preloader-video" autoplay muted loop playsinline preload="auto">
             <source src="assets/video/preloader-bg.mp4" type="video/mp4">
@@ -211,6 +212,7 @@
     </nav>
 
     <div class="main-container">
+        <!-- 1. CÓDIGO -->
         <section>
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/code.mp4" type="video/mp4">
@@ -225,6 +227,7 @@
             <div class="scroll-indicator"><i data-lucide="mouse" style="color:white; width: 22px;"></i></div>
         </section>
 
+        <!-- 2. DASHBOARD -->
         <section>
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/dashboard.mp4" type="video/mp4">
@@ -238,6 +241,7 @@
             </div>
         </section>
 
+        <!-- 3. BÍA AI -->
         <section>
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/bia-hologram.mp4" type="video/mp4">
@@ -251,6 +255,7 @@
             </div>
         </section>
 
+        <!-- 4. SPECS -->
         <section class="specs-grid">
             <div class="spec-item reveal">
                 <span class="spec-label">Core Engine</span>
@@ -276,31 +281,28 @@
     <script>
         lucide.createIcons();
 
-        // --- DEPURACIÓN DE VÍDEOS ---
-        const vVideos = document.querySelectorAll('.video-bg, .preloader-video');
-        console.log("Detectados " + vVideos.length + " vídeos en el DOM.");
-
-        vVideos.forEach((video, index) => {
-            const source = video.querySelector('source').src;
-            console.log("Vídeo " + index + " intentando cargar desde: " + source);
-
-            video.addEventListener('canplaythrough', () => {
-                console.log("Vídeo " + index + " listo para reproducir.");
-                video.classList.add('v-visible');
-            });
-
-            video.addEventListener('error', (e) => {
-                console.error("Error cargando vídeo " + index + ":", video.error);
-            });
-
-            // Forzado para Vercel si canplaythrough tarda mucho
-            setTimeout(() => {
-                if (!video.classList.contains('v-visible')) {
-                    console.log("Vídeo " + index + " forzando visibilidad.");
-                    video.classList.add('v-visible');
+        // --- GESTIÓN TÉCNICA DE REPRODUCCIÓN ---
+        const vVideos = document.querySelectorAll('video');
+        
+        // Función para forzar la reproducción (el autoplay a veces falla en móvil/ahorro energía)
+        const forcePlay = () => {
+            vVideos.forEach(video => {
+                if (video.paused) {
+                    video.play().catch(e => {
+                        // El error suele ser por falta de interacción del usuario
+                        console.log("Esperando interacción para reproducir vídeo...");
+                    });
                 }
-            }, 4000);
-        });
+            });
+        };
+
+        // Ejecutar forzado cada segundo hasta que todos funcionen
+        const playCheck = setInterval(() => {
+            forcePlay();
+            let allPlaying = true;
+            vVideos.forEach(v => { if(v.paused) allPlaying = false; });
+            if(allPlaying) clearInterval(playCheck);
+        }, 1000);
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
