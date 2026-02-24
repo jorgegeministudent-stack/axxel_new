@@ -123,7 +123,7 @@
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
-            filter: brightness(0.6) grayscale(0.1);
+            filter: brightness(0.65) grayscale(0.1);
             opacity: 1; 
             display: block;
             background: var(--black);
@@ -132,7 +132,7 @@
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -217,7 +217,7 @@
     <div class="main-container">
         <!-- 1. CÓDIGO -->
         <section id="sec-1">
-            <video class="video-bg" muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto" autoplay>
                 <source src="assets/video/code.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -232,7 +232,7 @@
 
         <!-- 2. DASHBOARD -->
         <section id="sec-2">
-            <video class="video-bg" muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto" autoplay>
                 <source src="assets/video/dashboard.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -246,7 +246,7 @@
 
         <!-- 3. BÍA AI -->
         <section id="sec-3">
-            <video class="video-bg" muted loop playsinline preload="auto">
+            <video class="video-bg" muted loop playsinline preload="auto" autoplay>
                 <source src="assets/video/bia-hologram.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -284,22 +284,36 @@
     <script>
         lucide.createIcons();
 
-        // --- SISTEMA DE REPRODUCCIÓN AGRESIVO ---
+        // --- SISTEMA DE REPRODUCCIÓN AGRESIVO Y DESBLOQUEO ---
         const vids = document.querySelectorAll('video');
         
-        // Función para "despertar" los vídeos del cuerpo
-        const wakeUpVideos = () => {
-            console.log("DIAGNÓSTICO: Despertando todos los flujos de vídeo...");
+        const tryPlayAll = () => {
+            console.log("DIAGNÓSTICO: Intento de reproducción masiva...");
             vids.forEach((v, i) => {
-                v.play().then(() => {
-                    console.log(`DIAGNÓSTICO: Video ${i} reproduciendo exitosamente.`);
-                }).catch(err => {
-                    console.warn(`DIAGNÓSTICO: Video ${i} requiere interacción o carga pendiente...`);
-                    // Forzamos carga de bytes
-                    v.load();
-                });
+                const playPromise = v.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log(`DIAGNÓSTICO: Video ${i} OK.`);
+                    }).catch(error => {
+                        console.warn(`DIAGNÓSTICO: Video ${i} bloqueado. Esperando interacción.`);
+                        // Intentamos cargar los metadatos de nuevo si falla
+                        v.load();
+                    });
+                }
             });
         };
+
+        // Escuchamos la primera interacción para desbloquear el contexto de video/audio
+        const unlockContext = () => {
+            tryPlayAll();
+            window.removeEventListener('click', unlockContext);
+            window.removeEventListener('scroll', unlockContext);
+            window.removeEventListener('touchstart', unlockContext);
+        };
+
+        window.addEventListener('click', unlockContext);
+        window.addEventListener('scroll', unlockContext, { passive: true });
+        window.addEventListener('touchstart', unlockContext);
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
@@ -325,23 +339,10 @@
                 clearInterval(interval);
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
-                    wakeUpVideos(); // Ejecutamos la reproducción masiva al terminar la carga
+                    tryPlayAll(); // Intentamos play al terminar carga
                 }, 1000);
             }
         }, 300);
-
-        // Ciclo de seguridad por si el CDN tarda en responder
-        const securityLoop = setInterval(() => {
-            if (preloader.classList.contains('loaded')) {
-                let allPlaying = true;
-                vids.forEach(v => { if (v.paused) allPlaying = false; });
-                if (allPlaying) {
-                    clearInterval(securityLoop);
-                } else {
-                    vids.forEach(v => v.play().catch(()=>{}));
-                }
-            }
-        }, 3000);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
