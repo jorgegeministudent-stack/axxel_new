@@ -38,14 +38,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 1s ease-in-out, visibility 1s;
+            transition: opacity 1s cubic-bezier(0.19, 1, 0.22, 1), visibility 1s;
         }
 
         .preloader-video {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
-            opacity: 0.2;
+            opacity: 0.3;
             filter: grayscale(1) blur(10px);
             z-index: -1;
         }
@@ -116,26 +116,21 @@
             background: var(--black);
         }
 
-        /* --- VIDEO BACKGROUNDS --- */
+        /* --- VIDEO BACKGROUNDS (BULL-PROOF) --- */
         .video-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             object-fit: cover;
             z-index: 0;
             filter: brightness(0.7) grayscale(0.1);
-            opacity: 0; /* Empiezan invisibles */
-            transition: opacity 2.5s ease;
-        }
-        
-        /* CORRECCIÓN: La clase que usa el JS ahora existe en el CSS */
-        .video-bg.v-visible { 
-            opacity: 1 !important; 
+            opacity: 1; /* Forzamos visibilidad total */
+            display: block;
         }
 
         .video-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.92) 100%);
             z-index: 1;
             pointer-events: none;
         }
@@ -152,8 +147,6 @@
         .logo-box span { font-weight: 700; letter-spacing: 0.8rem; font-size: 1.2rem; text-transform: uppercase; }
         .nav-left, .nav-right { font-size: 0.65rem; letter-spacing: 4px; text-transform: uppercase; font-weight: 700; color: #666; }
         .nav-right { display: flex; justify-content: flex-end; gap: 40px; }
-        .nav-right span { cursor: pointer; transition: 0.3s; }
-        .nav-right span:hover { color: var(--axxel-cyan); }
 
         /* --- CONTENT --- */
         .content-box { padding-left: 10%; z-index: 2; position: relative; }
@@ -181,6 +174,9 @@
         .footer-logo { font-size: 2.2rem; letter-spacing: 1.5rem; font-weight: 700; margin-bottom: 50px; }
         .footer-bottom { border-top: 1px solid var(--border); padding-top: 50px; display: flex; justify-content: space-between; font-size: 0.65rem; letter-spacing: 4px; color: #222; text-transform: uppercase; }
 
+        .reveal { opacity: 0; transform: translateY(50px); transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
         .scroll-indicator { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 10; opacity: 0.4; }
     </style>
 </head>
@@ -195,14 +191,14 @@
         <div class="preloader-bar-container">
             <div class="preloader-bar" id="load-bar"></div>
         </div>
-        <div class="preloader-status" id="load-status">Sincronizando Núcleo...</div>
+        <div class="preloader-status" id="load-status">Estableciendo Enlace...</div>
     </div>
 
     <div id="cursor"></div>
     <div id="cursor-follower"></div>
 
     <nav>
-        <div class="nav-left"><span>Status: Bía Engine Alpha</span></div>
+        <div class="nav-left"><span>Protocolo: Bía Engine Alpha</span></div>
         <div class="nav-center">
             <div class="logo-box">
                 <img src="assets/img/symbol.png" alt="Axxel">
@@ -218,7 +214,7 @@
 
     <div class="main-container">
         <!-- 1. CÓDIGO -->
-        <section>
+        <section id="sec-1">
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/code.mp4" type="video/mp4">
             </video>
@@ -233,7 +229,7 @@
         </section>
 
         <!-- 2. DASHBOARD -->
-        <section>
+        <section id="sec-2">
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/dashboard.mp4" type="video/mp4">
             </video>
@@ -247,7 +243,7 @@
         </section>
 
         <!-- 3. BÍA AI -->
-        <section>
+        <section id="sec-3">
             <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/bia-hologram.mp4" type="video/mp4">
             </video>
@@ -265,12 +261,12 @@
             <div class="spec-item reveal">
                 <span class="spec-label">Core Engine</span>
                 <h3 class="spec-value">Axxel v4.2</h3>
-                <p class="spec-desc">Infraestructura desacoplada con latencia optimizada para despliegues de misión crítica.</p>
+                <p style="color: #555; font-size: 0.9rem;">Infraestructura desacoplada con latencia optimizada.</p>
             </div>
             <div class="spec-item reveal">
-                <span class="spec-label">Intelligence</span>
-                <h3 class="spec-value">Predictive AI</h3>
-                <p class="spec-desc">Modelos de entrenamiento continuo que anticipan necesidades y resuelven fricciones operativas.</p>
+                <span class="spec-label">Availability</span>
+                <h3 class="spec-value">99.99% Uptime</h3>
+                <p style="color: #555; font-size: 0.9rem;">Sistemas auto-gestionados con redundancia geográfica.</p>
             </div>
         </section>
 
@@ -286,36 +282,24 @@
     <script>
         lucide.createIcons();
 
-        // --- SISTEMA DE DIAGNÓSTICO Y FORZADO ---
+        // --- GESTIÓN DE VÍDEO AGRESIVA ---
         const allVideos = document.querySelectorAll('video');
-        console.log("DEBUG: Iniciando diagnóstico de " + allVideos.length + " vídeos.");
-
+        
+        // Forzamos carga inmediata de todos los vídeos sin importar el viewport
         allVideos.forEach((v, i) => {
-            const source = v.querySelector('source').getAttribute('src');
+            v.load(); // Fuerza el inicio del streaming
             
-            // Forzar carga inicial
-            v.load();
-
-            v.addEventListener('playing', () => {
-                console.log("DEBUG: Video " + i + " (" + source + ") está REPRODUCIENDO.");
-                v.classList.add('v-visible'); // Aseguramos que se vea al reproducir
-            });
-
-            v.addEventListener('error', (e) => {
-                console.error("DEBUG ERROR: Video " + i + " (" + source + ") falló.", v.error);
-            });
-
-            // Fallback agresivo: si a los 5 segundos no ha disparado 'playing', forzamos opacidad
-            // Esto es útil si el video ya está cargado pero el navegador lo tiene pausado
-            setTimeout(() => {
-                if (v.paused) {
-                    v.play().catch(() => {
-                        console.warn("DEBUG: Auto-play bloqueado para Video " + i + ". Esperando interacción.");
-                    });
-                }
-                v.classList.add('v-visible');
-            }, 5000);
+            // Log de diagnóstico
+            v.addEventListener('playing', () => console.log(`Video ${i} reproduciendo exitosamente.`));
+            v.addEventListener('error', (e) => console.error(`Error en Video ${i}:`, v.error));
         });
+
+        // Intentar reproducir periódicamente hasta que el navegador lo permita
+        const forcePlayInterval = setInterval(() => {
+            allVideos.forEach(v => {
+                if (v.paused) v.play().catch(() => {});
+            });
+        }, 1000);
 
         // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
@@ -328,7 +312,7 @@
         let statusIdx = 0;
 
         const interval = setInterval(() => {
-            progress += Math.random() * 15;
+            progress += Math.random() * 12;
             if (progress > 100) progress = 100;
             loadBar.style.width = `${progress}%`;
             
@@ -339,11 +323,14 @@
 
             if (progress === 100) {
                 clearInterval(interval);
+                clearInterval(forcePlayInterval); // Paramos el intervalo de play forzado al entrar
                 setTimeout(() => { 
                     preloader.classList.add('loaded'); 
+                    // Una vez cargado, intentamos un último play masivo
+                    allVideos.forEach(v => v.play().catch(() => {}));
                 }, 1000);
             }
-        }, 350);
+        }, 300);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
@@ -363,7 +350,7 @@
         }
         animateCursor();
 
-        // --- REVEAL ---
+        // --- REVEAL ON SCROLL ---
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
@@ -372,7 +359,7 @@
                     });
                 }
             });
-        }, { threshold: 0.15 });
+        }, { threshold: 0.1 });
 
         document.querySelectorAll('section, footer').forEach(s => observer.observe(s));
     </script>
