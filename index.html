@@ -27,12 +27,29 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.8s ease-in-out, visibility 0.8s;
         }
-        .preloader-logo { width: 60px; margin-bottom: 40px; animation: pulse 2s infinite; }
-        .bar-container { width: 200px; height: 1px; background: rgba(255,255,255,0.1); position: relative; }
+        .preloader-logo { width: 60px; margin-bottom: 40px; }
+        .bar-container { width: 200px; height: 1px; background: rgba(255,255,255,0.1); position: relative; margin-bottom: 20px; }
         .bar { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--axxel-cyan); box-shadow: 0 0 15px var(--axxel-cyan); transition: width 0.3s; }
-        .status { font-family: var(--font-mono); font-size: 0.5rem; color: var(--grey); letter-spacing: 4px; margin-top: 20px; text-transform: uppercase; text-align: center; }
+        .status { font-family: var(--font-mono); font-size: 0.5rem; color: var(--grey); letter-spacing: 4px; text-transform: uppercase; text-align: center; margin-bottom: 30px; }
         
-        @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1); } }
+        /* Botón de desbloqueo de Autoplay */
+        #start-btn {
+            opacity: 0;
+            visibility: hidden;
+            padding: 15px 30px;
+            border: 1px solid var(--axxel-cyan);
+            color: var(--axxel-cyan);
+            background: transparent;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+        #start-btn.show { opacity: 1; visibility: visible; }
+        #start-btn:hover { background: var(--axxel-cyan); color: var(--black); box-shadow: 0 0 20px var(--axxel-cyan); }
+
         #preloader.loaded { opacity: 0; visibility: hidden; }
 
         /* --- CURSOR --- */
@@ -46,10 +63,9 @@
         .video-bg { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             object-fit: cover; z-index: 0; filter: brightness(0.5); 
-            opacity: 0; transition: opacity 2s ease;
+            opacity: 1; /* Siempre visible */
             background: #000;
         }
-        .video-bg.active { opacity: 1; }
         
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%); z-index: 1; }
 
@@ -74,14 +90,15 @@
     <div id="preloader">
         <img src="assets/img/symbol.png" alt="Axxel" class="preloader-logo">
         <div class="bar-container"><div class="bar" id="load-bar"></div></div>
-        <div class="status" id="load-status">Inyectando núcleos de memoria...</div>
+        <div class="status" id="load-status">Sincronizando flujos de datos...</div>
+        <button id="start-btn">Iniciar Sistema</button>
     </div>
 
     <div id="cursor"></div>
     <div id="cursor-follower"></div>
 
     <nav>
-        <div style="font-size: 0.6rem; letter-spacing: 3px; color: #555;">STATUS: SECURE_CORE_BYPASS</div>
+        <div style="font-size: 0.6rem; letter-spacing: 3px; color: #555;">PROTOCOL: BÍA_SECURE</div>
         <div class="logo-box"><img src="assets/img/symbol.png"><span>AXXEL</span></div>
         <div style="display: flex; justify-content: flex-end; gap: 30px; font-size: 0.6rem; letter-spacing: 2px; color: #555;">
             <span>SOLUCIONES</span><span>CONTACTO</span>
@@ -90,7 +107,9 @@
 
     <div class="main-container">
         <section>
-            <video id="vid-0" class="video-bg" loop playsinline muted></video>
+            <video class="video-bg" loop playsinline muted preload="auto">
+                <source src="assets/video/code.mp4" type="video/mp4">
+            </video>
             <div class="overlay"></div>
             <div class="content">
                 <span class="label reveal">Infrastructure v4.0</span>
@@ -101,7 +120,9 @@
         </section>
 
         <section>
-            <video id="vid-1" class="video-bg" loop playsinline muted></video>
+            <video class="video-bg" loop playsinline muted preload="auto">
+                <source src="assets/video/dashboard.mp4" type="video/mp4">
+            </video>
             <div class="overlay"></div>
             <div class="content">
                 <span class="label reveal">Data Intelligence</span>
@@ -112,7 +133,9 @@
         </section>
 
         <section>
-            <video id="vid-2" class="video-bg" loop playsinline muted></video>
+            <video class="video-bg" loop playsinline muted preload="auto">
+                <source src="assets/video/bia-hologram.mp4" type="video/mp4">
+            </video>
             <div class="overlay"></div>
             <div class="content">
                 <span class="label reveal">Neural Agent: Bía</span>
@@ -126,81 +149,63 @@
     <script>
         lucide.createIcons();
 
-        // --- MOTOR DE CARGA CON BYPASS DE CACHÉ ---
-        const videoResources = [
-            { url: 'assets/video/code.mp4', id: 'vid-0' },
-            { url: 'assets/video/dashboard.mp4', id: 'vid-1' },
-            { url: 'assets/video/bia-hologram.mp4', id: 'vid-2' }
-        ];
-
-        let loaded = 0;
+        const vids = document.querySelectorAll('video');
+        const startBtn = document.getElementById('start-btn');
         const bar = document.getElementById('load-bar');
         const statusText = document.getElementById('load-status');
+        const preloader = document.getElementById('preloader');
 
-        async function fetchVideo(resource) {
-            try {
-                // Forzamos la descarga ignorando la caché (cache: 'reload')
-                const response = await fetch(resource.url, { 
-                    cache: 'reload',
-                    mode: 'cors'
-                });
+        // --- MOTOR DE CARGA CON CACHE-BUSTING ---
+        const initVideos = () => {
+            const timestamp = Date.now();
+            vids.forEach((v, i) => {
+                const source = v.querySelector('source');
+                const cleanUrl = source.getAttribute('src').split('?')[0];
+                source.src = `${cleanUrl}?v=${timestamp}`;
+                v.load();
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const blob = await response.blob();
-                const videoUrl = URL.createObjectURL(blob);
-                const videoEl = document.getElementById(resource.id);
-                
-                // Configuración manual para asegurar compatibilidad
-                videoEl.muted = true;
-                videoEl.setAttribute('muted', '');
-                videoEl.setAttribute('playsinline', '');
-                videoEl.src = videoUrl;
-                
-                videoEl.onloadeddata = () => {
-                    videoEl.classList.add('active');
-                    videoEl.play().catch(e => console.log("Autoplay bloqueado por el navegador."));
-                };
+                v.onplaying = () => console.log(`DIAGNÓSTICO: Video ${i} reproduciendo.`);
+                v.onerror = () => console.error(`DIAGNÓSTICO: Video ${i} error de carga.`);
+            });
+        };
 
-                console.log(`DIAGNÓSTICO: ${resource.id} inyectado exitosamente.`);
-            } catch (error) {
-                console.error(`DIAGNÓSTICO: Fallo crítico en ${resource.url}`, error);
-                // Fallback a carga estándar si el fetch falla
-                const v = document.getElementById(resource.id);
-                v.src = resource.url + '?v=' + Date.now();
-                v.classList.add('active');
-            } finally {
-                loaded++;
-                const progress = (loaded / videoResources.length) * 100;
-                bar.style.width = progress + '%';
-                
-                if (loaded === videoResources.length) {
-                    statusText.innerText = "Núcleos sincronizados.";
-                    setTimeout(() => {
-                        document.getElementById('preloader').classList.add('loaded');
-                    }, 1000);
-                }
+        // --- LÓGICA DEL PRELOADER ---
+        let progress = 0;
+        const fakeProgress = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress >= 100) {
+                progress = 100;
+                clearInterval(fakeProgress);
+                statusText.innerText = "Sistemas listos para ignición.";
+                startBtn.classList.add('show');
             }
-        }
+            bar.style.width = progress + '%';
+        }, 300);
 
-        // Iniciar carga al cargar el DOM
-        window.addEventListener('DOMContentLoaded', () => {
-            videoResources.forEach(res => fetchVideo(res));
+        // --- DESBLOQUEO POR GESTO DE USUARIO (SOLUCIÓN DEFINITIVA) ---
+        startBtn.addEventListener('click', () => {
+            preloader.classList.add('loaded');
+            vids.forEach(v => {
+                v.play().catch(e => console.log("Reproducción bloqueada: ", e));
+            });
         });
 
-        // DESBLOQUEADOR GLOBAL: Cualquier interacción del usuario fuerza el play
-        const wakeUp = () => {
-            vids.forEach(v => {
-                if (v.paused) v.play().catch(()=>{});
+        // --- INTERSECTION OBSERVER PARA RE-ACTIVAR VÍDEOS ---
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                if (entry.isIntersecting) {
+                    video.play().catch(() => {});
+                } else {
+                    video.pause();
+                }
             });
-            window.removeEventListener('click', wakeUp);
-            window.removeEventListener('wheel', wakeUp);
-            window.removeEventListener('touchstart', wakeUp);
-        };
-        const vids = document.querySelectorAll('video');
-        window.addEventListener('click', wakeUp);
-        window.addEventListener('wheel', wakeUp);
-        window.addEventListener('touchstart', wakeUp);
+        }, { threshold: 0.1 });
+
+        vids.forEach(v => videoObserver.observe(v));
+
+        // Iniciar carga al cargar el DOM
+        window.addEventListener('DOMContentLoaded', initVideos);
 
         // --- CURSOR ---
         const cursor = document.getElementById('cursor');
@@ -220,8 +225,8 @@
         }
         animateCursor();
 
-        // --- REVEAL ---
-        const observer = new IntersectionObserver(entries => {
+        // --- REVEAL ON SCROLL ---
+        const revealObserver = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
                     entry.target.querySelectorAll('.reveal').forEach((el, i) => {
@@ -230,7 +235,7 @@
                 }
             });
         }, { threshold: 0.1 });
-        document.querySelectorAll('section').forEach(s => observer.observe(s));
+        document.querySelectorAll('section').forEach(s => revealObserver.observe(s));
     </script>
 </body>
 </html>
