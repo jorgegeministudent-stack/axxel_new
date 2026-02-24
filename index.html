@@ -123,10 +123,9 @@
             object-fit: cover;
             z-index: 0;
             filter: brightness(0.3) grayscale(0.1);
-            opacity: 0; /* Empieza invisible */
+            opacity: 0; 
             transition: opacity 2s ease;
         }
-        /* Clase que activa la visibilidad */
         .video-bg.v-visible { opacity: 1; }
 
         .video-overlay {
@@ -171,25 +170,19 @@
         .spec-item { padding: 120px 10%; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
         .spec-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--grey); letter-spacing: 5px; margin-bottom: 25px; text-transform: uppercase; }
         .spec-value { font-size: 2.5rem; font-weight: 200; letter-spacing: 6px; margin-bottom: 25px; text-transform: uppercase; }
-        .spec-desc { color: var(--grey); font-size: 0.95rem; line-height: 1.8; max-width: 450px; }
 
         /* --- FOOTER --- */
         .footer { padding: 120px 10% 80px; border-top: 1px solid var(--border); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; background: var(--black); }
         .footer-logo { font-size: 2.2rem; letter-spacing: 1.5rem; font-weight: 700; margin-bottom: 50px; }
         .footer-bottom { border-top: 1px solid var(--border); padding-top: 50px; display: flex; justify-content: space-between; font-size: 0.65rem; letter-spacing: 4px; color: #222; text-transform: uppercase; }
 
-        /* --- REVEAL --- */
-        .reveal { opacity: 0; transform: translateY(50px); transition: 1.5s cubic-bezier(0.19, 1, 0.22, 1); }
-        .reveal.visible { opacity: 1; transform: translateY(0); }
-
         .scroll-indicator { position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); z-index: 10; opacity: 0.4; }
     </style>
 </head>
 <body>
 
-    <!-- PRELOADER -->
     <div id="preloader">
-        <video class="preloader-video" autoplay muted loop playsinline>
+        <video class="preloader-video" autoplay muted loop playsinline preload="auto">
             <source src="assets/video/preloader-bg.mp4" type="video/mp4">
         </video>
         <img src="assets/img/symbol.png" alt="Axxel" class="preloader-logo">
@@ -218,9 +211,8 @@
     </nav>
 
     <div class="main-container">
-        <!-- SECCIÓN 1: CÓDIGO -->
         <section>
-            <video class="video-bg" autoplay muted loop playsinline>
+            <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/code.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -233,9 +225,8 @@
             <div class="scroll-indicator"><i data-lucide="mouse" style="color:white; width: 22px;"></i></div>
         </section>
 
-        <!-- SECCIÓN 2: DASHBOARD -->
         <section>
-            <video class="video-bg" autoplay muted loop playsinline>
+            <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/dashboard.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -247,9 +238,8 @@
             </div>
         </section>
 
-        <!-- SECCIÓN 3: BÍA AI -->
         <section>
-            <video class="video-bg" autoplay muted loop playsinline>
+            <video class="video-bg" autoplay muted loop playsinline preload="auto">
                 <source src="assets/video/bia-hologram.mp4" type="video/mp4">
             </video>
             <div class="video-overlay"></div>
@@ -261,7 +251,6 @@
             </div>
         </section>
 
-        <!-- SECCIÓN 4: SPECS -->
         <section class="specs-grid">
             <div class="spec-item reveal">
                 <span class="spec-label">Core Engine</span>
@@ -275,7 +264,6 @@
             </div>
         </section>
 
-        <!-- FOOTER -->
         <footer class="footer">
             <div class="footer-logo">AXXEL</div>
             <div class="footer-bottom">
@@ -288,38 +276,38 @@
     <script>
         lucide.createIcons();
 
-        // --- LÓGICA DE CARGA DE VÍDEOS (FAIL-SAFE) ---
-        const vVideos = document.querySelectorAll('.video-bg');
-        
-        vVideos.forEach(video => {
-            // Intento 1: Evento canplay
+        // --- DEPURACIÓN DE VÍDEOS ---
+        const vVideos = document.querySelectorAll('.video-bg, .preloader-video');
+        console.log("Detectados " + vVideos.length + " vídeos en el DOM.");
+
+        vVideos.forEach((video, index) => {
+            const source = video.querySelector('source').src;
+            console.log("Vídeo " + index + " intentando cargar desde: " + source);
+
             video.addEventListener('canplaythrough', () => {
+                console.log("Vídeo " + index + " listo para reproducir.");
                 video.classList.add('v-visible');
             });
 
-            // Intento 2: Si ya está cargado o en cache
-            if (video.readyState >= 3) {
-                video.classList.add('v-visible');
-            }
+            video.addEventListener('error', (e) => {
+                console.error("Error cargando vídeo " + index + ":", video.error);
+            });
 
-            // Intento 3: Fail-safe (Forzar aparición a los 3 segundos de todos modos)
+            // Forzado para Vercel si canplaythrough tarda mucho
             setTimeout(() => {
-                video.classList.add('v-visible');
-            }, 3000);
+                if (!video.classList.contains('v-visible')) {
+                    console.log("Vídeo " + index + " forzando visibilidad.");
+                    video.classList.add('v-visible');
+                }
+            }, 4000);
         });
 
-        // --- LÓGICA DEL PRELOADER ---
+        // --- PRELOADER ---
         const preloader = document.getElementById('preloader');
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
         
-        const statuses = [
-            "Estableciendo Enlace Neural...",
-            "Sincronizando Bía Alpha-1...",
-            "Cargando Módulos de Datos...",
-            "Validando Protocolos...",
-            "Sistemas Operativos."
-        ];
+        const statuses = ["Estableciendo Enlace Neural...", "Sincronizando Bía Alpha-1...", "Cargando Módulos...", "Validando Protocolos...", "Sistemas Operativos."];
 
         let progress = 0;
         let statusIdx = 0;
@@ -336,9 +324,7 @@
 
             if (progress === 100) {
                 clearInterval(interval);
-                setTimeout(() => {
-                    preloader.classList.add('loaded');
-                }, 1000);
+                setTimeout(() => { preloader.classList.add('loaded'); }, 1000);
             }
         }, 350);
 
@@ -360,7 +346,7 @@
         }
         animateCursor();
 
-        // --- REVEAL ON SCROLL ---
+        // --- REVEAL ---
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
