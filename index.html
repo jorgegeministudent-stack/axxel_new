@@ -30,9 +30,11 @@
         .preloader-logo { width: 60px; margin-bottom: 40px; animation: pulse 2s infinite; }
         .bar-container { width: 200px; height: 1px; background: rgba(255,255,255,0.1); position: relative; }
         .bar { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--axxel-cyan); box-shadow: 0 0 15px var(--axxel-cyan); transition: width 0.3s; }
-        .status { font-family: var(--font-mono); font-size: 0.5rem; color: var(--grey); letter-spacing: 4px; margin-top: 20px; text-transform: uppercase; }
+        .status { font-family: var(--font-mono); font-size: 0.5rem; color: var(--grey); letter-spacing: 4px; margin-top: 20px; text-transform: uppercase; text-align: center; }
         @keyframes pulse { 0%, 100% { opacity: 0.5; transform: scale(0.98); } 50% { opacity: 1; transform: scale(1); } }
         #preloader.loaded { opacity: 0; visibility: hidden; }
+
+        .bg-pre { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.25; filter: grayscale(1) blur(5px); }
 
         /* --- CURSOR --- */
         #cursor { position: fixed; width: 8px; height: 8px; background: var(--axxel-cyan); border-radius: 50%; pointer-events: none; z-index: 30000; }
@@ -42,9 +44,9 @@
         .main-container { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; scroll-behavior: smooth; }
         section { height: 100vh; width: 100vw; scroll-snap-align: start; position: relative; display: flex; align-items: center; overflow: hidden; background: #000; }
         
-        .video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; filter: brightness(0.6); opacity: 0; transition: opacity 1.5s; }
+        .video-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; filter: brightness(0.5); opacity: 0; transition: opacity 1.5s; }
         .video-bg.ready { opacity: 1; }
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%); z-index: 1; }
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.85) 100%); z-index: 1; }
 
         nav { position: fixed; top: 0; width: 100%; padding: 40px 60px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; z-index: 1000; }
         .logo-box { display: flex; align-items: center; gap: 12px; }
@@ -65,9 +67,10 @@
 <body>
 
     <div id="preloader">
+        <video id="vid-pre" class="bg-pre" muted loop playsinline></video>
         <img src="assets/img/symbol.png" alt="Axxel" class="preloader-logo">
         <div class="bar-container"><div class="bar" id="load-bar"></div></div>
-        <div class="status" id="load-status">Iniciando descarga de núcleos...</div>
+        <div class="status" id="load-status">Sincronizando núcleos...</div>
     </div>
 
     <div id="cursor"></div>
@@ -119,40 +122,49 @@
     <script>
         lucide.createIcons();
 
-        // --- MOTOR DE CARGA POR BLOB (MEMORIA) ---
+        // --- MOTOR DE CARGA POR BLOB CON CACHE BUSTING ---
         const videoFiles = [
-            'assets/video/code.mp4',
-            'assets/video/dashboard.mp4',
-            'assets/video/bia-hologram.mp4'
+            { url: 'assets/video/preloader-bg.mp4', id: 'vid-pre' },
+            { url: 'assets/video/code.mp4', id: 'vid-0' },
+            { url: 'assets/video/dashboard.mp4', id: 'vid-1' },
+            { url: 'assets/video/bia-hologram.mp4', id: 'vid-2' }
         ];
 
         let loadedCount = 0;
         const loadBar = document.getElementById('load-bar');
         const loadStatus = document.getElementById('load-status');
 
-        async function loadVideoToBlob(url, videoId) {
+        async function loadVideo(entry) {
+            const cacheBuster = `?t=${new Date().getTime()}`;
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                // Timeout de 10 segundos por video para evitar bloqueos infinitos
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+                const response = await fetch(entry.url + cacheBuster, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error(`Status: ${response.status}`);
+                
                 const blob = await response.blob();
                 const blobUrl = URL.createObjectURL(blob);
-                const videoEl = document.getElementById(videoId);
-                videoEl.src = blobUrl;
-                videoEl.classList.add('ready');
-                videoEl.play().catch(() => {
-                    // Autoplay fallback
-                    window.addEventListener('mousedown', () => videoEl.play(), {once: true});
-                });
+                const videoEl = document.getElementById(entry.id);
                 
-                loadedCount++;
-                updateProgress();
-                console.log(`Blob OK: ${videoId}`);
+                videoEl.src = blobUrl;
+                videoEl.onloadeddata = () => {
+                    videoEl.classList.add('ready');
+                    videoEl.play().catch(() => {
+                        window.addEventListener('mousedown', () => videoEl.play(), {once: true});
+                    });
+                };
+                
+                console.log(`DIAGNÓSTICO: Video ${entry.id} cargado vía Blob.`);
             } catch (e) {
-                console.error(`Blob Fail: ${url}`, e);
-                // Fallback a carga normal si falla el fetch
-                const v = document.getElementById(videoId);
-                v.src = url;
-                v.classList.add('ready');
+                console.warn(`DIAGNÓSTICO: Falló carga Blob para ${entry.url}. Aplicando fallback.`, e);
+                const videoEl = document.getElementById(entry.id);
+                videoEl.src = entry.url + cacheBuster;
+                videoEl.classList.add('ready');
+            } finally {
                 loadedCount++;
                 updateProgress();
             }
@@ -161,22 +173,30 @@
         function updateProgress() {
             const percent = (loadedCount / videoFiles.length) * 100;
             loadBar.style.width = percent + '%';
-            if(loadedCount === 1) loadStatus.innerText = "Sincronizando Bía...";
-            if(loadedCount === 2) loadStatus.innerText = "Configurando Visuales...";
+            
+            if(loadedCount === 1) loadStatus.innerText = "Sincronizando Bía Alpha...";
+            if(loadedCount === 3) loadStatus.innerText = "Validando flujos visuales...";
             
             if (loadedCount === videoFiles.length) {
                 loadStatus.innerText = "Sistemas Listos.";
                 setTimeout(() => {
                     document.getElementById('preloader').classList.add('loaded');
-                }, 800);
+                }, 1000);
             }
         }
 
-        // Iniciar carga masiva inmediata
+        // Iniciar carga masiva inmediata al cargar el DOM
         window.addEventListener('DOMContentLoaded', () => {
-            videoFiles.forEach((url, index) => {
-                loadVideoToBlob(url, `vid-${index}`);
-            });
+            videoFiles.forEach(entry => loadVideo(entry));
+            
+            // Fail-safe global: si a los 15 segundos no ha abierto, forzar apertura
+            setTimeout(() => {
+                const pre = document.getElementById('preloader');
+                if (!pre.classList.contains('loaded')) {
+                    console.log("DIAGNÓSTICO: Fail-safe activado. Forzando apertura.");
+                    pre.classList.add('loaded');
+                }
+            }, 15000);
         });
 
         // --- CURSOR ---
@@ -197,7 +217,7 @@
         }
         animateCursor();
 
-        // --- REVEAL ---
+        // --- REVEAL ON SCROLL ---
         const observer = new IntersectionObserver(entries => {
             entries.forEach(entry => {
                 if(entry.isIntersecting) {
